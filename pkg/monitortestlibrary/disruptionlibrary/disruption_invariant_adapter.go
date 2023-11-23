@@ -98,11 +98,11 @@ func (w *Availability) CollectData(ctx context.Context) (monitorapi.Intervals, [
 	return nil, nil, utilerrors.NewAggregate([]error{newRecoverErr, reusedRecoverErr})
 }
 
-func createDisruptionJunit(testName string, allowedDisruption *time.Duration, disruptionDetails string, locator monitorapi.Locator, disruptedIntervals monitorapi.Intervals) *junitapi.JUnitTestCase {
+func createDisruptionJunit(testName string, allowedDisruptionSeconds *time.Duration, disruptionDetails string, locator monitorapi.Locator, disruptedIntervals monitorapi.Intervals) *junitapi.JUnitTestCase {
 	// Indicates there is no entry in the query_results.json data file, nor a valid fallback,
 	// we do not wish to run the test. (this likely implies we do not have the required number of
 	// runs in 3 weeks to do a reliable P99)
-	if allowedDisruption == nil {
+	if allowedDisruptionSeconds == nil {
 		return &junitapi.JUnitTestCase{
 			Name: testName,
 			SkipMessage: &junitapi.SkipMessage{
@@ -111,9 +111,13 @@ func createDisruptionJunit(testName string, allowedDisruption *time.Duration, di
 		}
 	}
 
-	if *allowedDisruption < 1*time.Second {
+	// allowed disruption is in seconds
+	// we need to first covert to milliseconds
+	allowedDisruption := *allowedDisruptionSeconds * time.Second
+
+	if allowedDisruption < 1*time.Second {
 		t := 1 * time.Second
-		allowedDisruption = &t
+		allowedDisruption = t
 		disruptionDetails = "always allow at least one second"
 	}
 
